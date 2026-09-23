@@ -1,0 +1,48 @@
+# Gera a versão site do jogo (pygbag) e publica no GitHub Pages
+# a cada envio para a branch main. Também pode ser rodado manualmente
+# pela aba "Actions" do repositório.
+name: Publicar site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar ferramentas
+        run: pip install -r requirements-site.txt
+
+      - name: Gerar site
+        run: python ferramentas/gerar_site.py --build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build_web/build/web
+
+  publicar:
+    needs: gerar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
