@@ -4,10 +4,8 @@ import random
 from .config import REPETICOES_NA_FITA, SIMBOLOS
 from .efeitos import ease_out, suave
 
-# borrão de movimento: some aos poucos entre essas duas velocidades (símbolos/s)
 BORRAO_INICIO, BORRAO_TOTAL = 4.0, 10.0
 
-# assentamento no final: a roleta passa um pouquinho do ponto e volta suavemente
 PASSA_DO_PONTO = 0.12   # fração de um card
 TEMPO_VOLTA = 0.35      # segundos
 
@@ -16,11 +14,9 @@ class Roleta:
     def __init__(self):
         self.fita = list(SIMBOLOS) * REPETICOES_NA_FITA
         random.shuffle(self.fita)
-        # posição medida em "símbolos" (não em pixels), por isso o giro
-        # continua correto mesmo se a janela mudar de tamanho no meio dele
         self.pos = float(random.randrange(len(self.fita)))
         self.girando = False
-        self.velocidade = 0.0   # símbolos por segundo
+        self.velocidade = 0.0   
         self._inicio = self._alvo = 0.0
         self._t = 0.0
         self._duracao = 1.0
@@ -40,7 +36,6 @@ class Roleta:
         self.girando = True
 
     def _posicao(self, t):
-        """Posição no instante t: desacelera até passar um pouco do alvo e volta assentando."""
         principal = self._duracao - TEMPO_VOLTA
         passou = self._alvo + PASSA_DO_PONTO
         if t < principal:
@@ -49,7 +44,6 @@ class Roleta:
         return passou - PASSA_DO_PONTO * suave(k)
 
     def atualizar(self, dt):
-        """Avança a animação. Retorna True no quadro em que a roleta para."""
         if not self.girando:
             return False
         self._t += dt
@@ -64,7 +58,6 @@ class Roleta:
         return False
 
     def desenhar(self, tela, rect, cards, borrados, passo, sombra):
-        """Desenha os cards visíveis, misturando com a versão borrada conforme a velocidade."""
         base = math.floor(self.pos)
         frac = self.pos - base
         mistura = min(1.0, max(0.0, (self.velocidade - BORRAO_INICIO) / (BORRAO_TOTAL - BORRAO_INICIO)))

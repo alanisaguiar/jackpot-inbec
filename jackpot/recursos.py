@@ -4,11 +4,9 @@ import pygame
 from .config import LOGO, NA_WEB, PASTA_FONTES, PASTA_IMAGENS, PASTA_SONS, SIMBOLOS, SONS, VOLUME
 
 
-# --- fontes -----------------------------------------------------------------
-
+# FONTES
 @lru_cache(maxsize=None)
 def fonte(tamanho, peso=800):
-    """Fonte Exo 2 no peso pedido (600, 700, 800 ou 900), com reserva do sistema."""
     tamanho = max(8, int(tamanho))
     caminho = os.path.join(PASTA_FONTES, f"Exo2-{peso}.ttf")
     if os.path.exists(caminho):
@@ -17,8 +15,6 @@ def fonte(tamanho, peso=800):
 
 
 class Fontes:
-    """Fontes do jogo no tamanho certo para a escala atual."""
-
     def __init__(self, layout):
         px = layout.px
         self.letreiro = fonte(px(50), 900)
@@ -30,10 +26,9 @@ class Fontes:
         self.dica = fonte(max(11, px(13)), 600)
 
 
-# --- imagens ----------------------------------------------------------------
+# IMAGENS
 
 def remover_fundo_claro(img, tolerancia=40):
-    """Deixa transparentes os pixels quase brancos (para imagens salvas com fundo)."""
     mascara = pygame.mask.from_threshold(img, (255, 255, 255, 255), (tolerancia, tolerancia, tolerancia, 255))
     # pinta de transparente só os pixels marcados, sobre uma cópia no mesmo formato da imagem
     # (usar unsetsurface falha no navegador, onde o formato de pixel é diferente)
@@ -43,7 +38,6 @@ def remover_fundo_claro(img, tolerancia=40):
 
 
 def carregar_imagem(arquivo, sem_fundo=False):
-    """Carrega uma imagem da pasta "imagens" já recortada nas bordas transparentes."""
     caminho = os.path.join(PASTA_IMAGENS, arquivo)
     if not os.path.exists(caminho):
         print(f"Imagem não encontrada: {caminho}")
@@ -59,7 +53,6 @@ def carregar_imagem(arquivo, sem_fundo=False):
 
 
 def ajustar(img, tamanho):
-    """Redimensiona mantendo a proporção para caber em `tamanho`."""
     escala = min(tamanho[0] / img.get_width(), tamanho[1] / img.get_height())
     novo = (max(1, int(img.get_width() * escala)), max(1, int(img.get_height() * escala)))
     if escala > 1:
@@ -69,18 +62,15 @@ def ajustar(img, tamanho):
 
 
 class Imagens:
-    """Imagens originais carregadas uma única vez; os tamanhos são gerados sob demanda."""
-
     def __init__(self):
         self.logo = carregar_imagem(LOGO, sem_fundo=True)
         self.simbolos = {chave: self.logo if s.arquivo == LOGO else carregar_imagem(s.arquivo)
                          for chave, s in SIMBOLOS.items()}
 
 
-# --- sons -------------------------------------------------------------------
+# SONS
 
 class Sons:
-    """Efeitos sonoros por evento. Arquivos ausentes (ou sem placa de som) viram silêncio."""
 
     def __init__(self):
         self.sons = {}
