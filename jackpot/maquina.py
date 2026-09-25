@@ -1,13 +1,5 @@
-"""Aparência da máquina: letreiro, gabinete, janela das roletas, display, LEDs e alavanca.
-
-Tudo o que é estático é desenhado uma única vez por tamanho de janela (em
-`Maquina.fundo`); a cada quadro só são desenhadas as partes animadas.
-"""
-
 import math
-
 import pygame
-
 from .config import SUBTITULO, TITULO, Cor
 from .efeitos import (brilho_radial, desfocar, forma_com_gradiente, fundo_grade,
                       gradiente_vertical, misturar, sombra_suave, texto_com_brilho)
@@ -15,7 +7,6 @@ from .recursos import ajustar
 
 
 def texto_espacado(fonte, texto, cor, espaco):
-    """Texto com espaçamento extra entre as letras (visual mais "tech")."""
     letras = [fonte.render(c, True, cor) for c in texto]
     largura = sum(s.get_width() for s in letras) + espaco * (len(letras) - 1)
     surf = pygame.Surface((max(1, largura), fonte.get_height()), pygame.SRCALPHA)
@@ -27,8 +18,6 @@ def texto_espacado(fonte, texto, cor, espaco):
 
 
 class Alavanca:
-    """Animação da alavanca: desce e volta quando o jogador gira."""
-
     DURACAO = 0.5
 
     def __init__(self):
@@ -59,9 +48,7 @@ class Maquina:
         self.setas = self._construir_setas()
         self.bola = self._construir_bola()
 
-    # =====================================================================
     # partes estáticas (desenhadas uma vez)
-    # =====================================================================
 
     def _construir_fundo(self, logo):
         lay, px = self.lay, self.lay.px
@@ -207,9 +194,7 @@ class Maquina:
         bola.blit(brilho, (0, 0))
         return bola
 
-    # =====================================================================
     # partes animadas (desenhadas a cada quadro)
-    # =====================================================================
 
     def desenhar_vidro(self, tela):
         tela.blit(self.vidro, self.lay.janela.inflate(-self.lay.px(8), -self.lay.px(8)))

@@ -1,13 +1,4 @@
-"""Posições e tamanhos de tudo na tela, calculados a partir do tamanho da janela.
-
-O desenho é feito numa "tela base" com 700 de altura. A largura dessa tela base
-acompanha a proporção da janela (entre BASE_L_MIN e BASE_L_MAX), então em
-janelas mais largas a máquina também fica mais larga e ocupa as laterais.
-A tela base é escalada para caber na janela e centralizada.
-"""
-
 import pygame
-
 from .config import N_ROLETAS
 
 BASE_A = 700
@@ -16,7 +7,7 @@ BASE_L_MIN, BASE_L_MAX = 1100, 1500   # limite para a máquina não esticar dema
 # máquina (corpo principal)
 MAQ_A = 672
 MAQ_Y = 14
-MARGEM_LATERAL = 70                    # espaço livre entre a máquina e as bordas da tela
+MARGEM_LATERAL = 70                  
 LARGURA_ALAVANCA = 90
 MARGEM_INTERNA = 22
 
@@ -71,14 +62,12 @@ class Layout:
         self.margem = self.px(14)
 
     def card_central(self, roleta):
-        """Retângulo do card que está na linha de prêmio de uma roleta."""
         l, a = self.tamanho_card
         return pygame.Rect(0, 0, l, a).move(roleta.centerx - l // 2, roleta.centery - a // 2)
 
-    # --- conversão da tela base para a janela ---------------------------------
+    # conversão da tela base para a janela
 
     def px(self, valor):
-        """Converte um tamanho da tela base para pixels da janela."""
         return max(1, round(valor * self.escala))
 
     def x(self, valor):

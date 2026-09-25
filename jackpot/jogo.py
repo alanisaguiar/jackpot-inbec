@@ -1,12 +1,8 @@
-"""Classe principal: janela, eventos, estados do jogo e ordem de desenho da tela."""
-
 import asyncio
 import math
 import random
 import time
-
 import pygame
-
 from . import regras
 from .cards import criar_cards
 from .config import (DURACOES, FADE_ROLETA_MS, FPS, N_ROLETAS, NA_WEB, SUBTITULO, TAMANHO_INICIAL, TAMANHO_MINIMO,
@@ -18,14 +14,11 @@ from .recursos import Fontes, Imagens, Sons
 from .roleta import Roleta
 
 PARADO, GIRANDO, RESULTADO = "parado", "girando", "resultado"
-ESPERA_INICIAL_WEB_MS = 1500   # no site, cliques logo após abrir são o "clique para começar" da página
-
+ESPERA_INICIAL_WEB_MS = 1500   
 
 class Jogo:
     def __init__(self):
         if NA_WEB:
-            # no navegador o Python começa sempre com a mesma semente aleatória:
-            # sem isso, todo visitante veria exatamente a mesma sequência de resultados
             random.seed(time.time_ns())
         pygame.mixer.pre_init(44100, -16, 2, 512)
         pygame.init()
@@ -50,7 +43,7 @@ class Jogo:
         self.tempo = 0.0
         self.jogadas = 0
         self.vitorias = 0
-        self.inicio_ms = 0   # redefinido quando o laço principal começa
+        self.inicio_ms = 0   
 
         self.aplicar_layout(self.tela.get_size())
 
@@ -59,12 +52,11 @@ class Jogo:
         try:
             pygame.Window.from_display_module().minimum_size = TAMANHO_MINIMO
         except Exception:
-            pass  # versão do pygame sem suporte; o layout se adapta mesmo assim
+            pass  
 
-    # --- tamanho da tela ----------------------------------------------------
+    # tamanho da tela 
 
     def aplicar_layout(self, tamanho):
-        """Recalcula tudo que depende do tamanho da janela."""
         self.layout = Layout(tamanho)
         self.fontes = Fontes(self.layout)
         self.maquina = Maquina(self.layout, self.fontes, self.imagens)
@@ -80,7 +72,7 @@ class Jogo:
         self.tela_cheia = not self.tela_cheia
         self.aplicar_layout(self.tela.get_size())
 
-    # --- lógica -------------------------------------------------------------
+    # lógica
 
     def girar(self):
         if self.estado == GIRANDO:
@@ -94,7 +86,7 @@ class Jogo:
         self.confetes.limpar()
         self.alavanca.puxar()
         self.jogadas += 1
-        self.sons.parar_todos()   # corta o som da jogada anterior, se ainda estiver tocando
+        self.sons.parar_todos()   
         self.sons.tocar("girar")
 
     def finalizar_giro(self):
@@ -109,7 +101,6 @@ class Jogo:
             self.sons.tocar("derrota")
 
     def mensagem(self):
-        """Textos do display (linha principal, linha secundária, cor da principal)."""
         if self.estado == GIRANDO:
             return "BOA SORTE!", "", Cor.TEXTO_LCD
         if self.premio:
@@ -129,7 +120,7 @@ class Jogo:
             if not any(r.girando for r in self.roletas):
                 self.finalizar_giro()
 
-    # --- desenho ------------------------------------------------------------
+    # desenho 
 
     def desenhar(self):
         lay, maq = self.layout, self.maquina

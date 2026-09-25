@@ -30,9 +30,11 @@ class Fontes:
 
 def remover_fundo_claro(img, tolerancia=40):
     mascara = pygame.mask.from_threshold(img, (255, 255, 255, 255), (tolerancia, tolerancia, tolerancia, 255))
-    # pinta de transparente só os pixels marcados, sobre uma cópia no mesmo formato da imagem
-    # (usar unsetsurface falha no navegador, onde o formato de pixel é diferente)
-    resultado = img.convert_alpha()
+    # pinta de transparente só os pixels marcados, sobre uma cópia com canal alfa
+    # (usar unsetsurface falha no navegador, onde o formato de pixel é diferente;
+    # e não usa convert_alpha para funcionar também sem janela aberta, no script do site)
+    resultado = pygame.Surface(img.get_size(), pygame.SRCALPHA)
+    resultado.blit(img, (0, 0))
     mascara.to_surface(resultado, setcolor=(0, 0, 0, 0), unsetcolor=None)
     return resultado
 

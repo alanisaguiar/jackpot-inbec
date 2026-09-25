@@ -1,29 +1,18 @@
-"""Efeitos visuais genéricos: gradientes, brilho, sombras, desfoque, texto e confetes."""
-
 import math
 import random
-
 import pygame
-
 from .config import Cor
 
 
 def ease_out(t, potencia=3):
-    """Começa rápido e desacelera até parar (velocidade chega a zero em t=1).
-
-    Potências altas deixam o final lento demais: a roleta passa muito tempo
-    andando menos de 1 pixel por quadro e parece travada. 3 é um bom equilíbrio.
-    """
     return 1 - (1 - t) ** potencia
 
 
 def suave(t):
-    """Acelera e desacelera suavemente (velocidade zero nas duas pontas)."""
     return t * t * (3 - 2 * t)
 
 
 def misturar(c1, c2, k):
-    """Cor intermediária entre c1 (k=0) e c2 (k=1)."""
     return tuple(int(c1[i] + (c2[i] - c1[i]) * k) for i in range(3))
 
 
@@ -36,7 +25,6 @@ def gradiente_vertical(tamanho, cor_topo, cor_base):
 
 
 def forma_com_gradiente(tamanho, cor_topo, cor_base, raio, **cantos):
-    """Retângulo arredondado preenchido com gradiente vertical (com transparência fora dos cantos)."""
     surf = gradiente_vertical(tamanho, cor_topo, cor_base).convert_alpha()
     mascara = pygame.Surface(tamanho, pygame.SRCALPHA)
     pygame.draw.rect(mascara, (255, 255, 255, 255), mascara.get_rect(), border_radius=raio, **cantos)
@@ -45,7 +33,6 @@ def forma_com_gradiente(tamanho, cor_topo, cor_base, raio, **cantos):
 
 
 def brilho_radial(raio, cor, alpha_max=150):
-    """Círculo de luz que esmaece do centro para fora."""
     raio = max(2, raio)
     surf = pygame.Surface((raio * 2, raio * 2), pygame.SRCALPHA)
     passos = 40
@@ -64,8 +51,6 @@ def desfocar(surf, raio):
 
 
 def sombra_suave(tamanho, raio_borda, desfoque, alpha=90):
-    """Sombra desfocada de um retângulo arredondado, para "descolar" objetos do fundo."""
-    # feita em 1/4 do tamanho e ampliada depois: mesmo resultado visual, bem mais rápido
     f = 4
     pequeno = (max(1, tamanho[0] // f), max(1, tamanho[1] // f))
     base = pygame.Surface(pequeno, pygame.SRCALPHA)
@@ -75,7 +60,6 @@ def sombra_suave(tamanho, raio_borda, desfoque, alpha=90):
 
 
 def texto_com_brilho(fonte, texto, cor, cor_brilho, raio):
-    """Texto com um halo desfocado atrás (efeito neon discreto)."""
     s = fonte.render(texto, True, cor)
     halo = desfocar(fonte.render(texto, True, cor_brilho), raio)
     resultado = halo.copy()
@@ -85,14 +69,12 @@ def texto_com_brilho(fonte, texto, cor, cor_brilho, raio):
 
 
 def desfoque_vertical(surf, forca=6):
-    """Borrão de movimento vertical, usado quando a roleta gira rápido."""
     l, a = surf.get_size()
     pequeno = pygame.transform.smoothscale(surf, (l, max(1, a // forca)))
     return pygame.transform.smoothscale(pequeno, (l, a))
 
 
 def fundo_grade(tamanho, passo):
-    """Fundo branco com grade fina e pontos nos cruzamentos (papel milimetrado "tech")."""
     l, a = tamanho
     surf = pygame.Surface(tamanho)
     surf.fill(Cor.FUNDO)
@@ -108,7 +90,6 @@ def fundo_grade(tamanho, passo):
 
 
 def sombra_cilindro(tamanho):
-    """Escurece as bordas de cima e de baixo para parecer uma roleta cilíndrica."""
     l, a = tamanho
     surf = pygame.Surface(tamanho, pygame.SRCALPHA)
     for y in range(a):
@@ -118,7 +99,6 @@ def sombra_cilindro(tamanho):
 
 
 def texto_centralizado(tela, fonte, texto, centro, cor, largura_max=None):
-    """Desenha texto centralizado, diminuindo-o se não couber em largura_max."""
     s = fonte.render(texto, True, cor)
     if largura_max and s.get_width() > largura_max:
         k = largura_max / s.get_width()

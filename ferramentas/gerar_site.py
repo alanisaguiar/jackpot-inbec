@@ -10,6 +10,8 @@ O que o script faz, sem mexer nos arquivos originais do projeto:
   3. converte os sons de MP3 para OGG (formato que o pygbag toca no navegador)
   4. cria o ícone da aba (favicon) a partir da logo
   5. roda o pygbag, que empacota tudo em uma página web
+  6. (só com --build) troca a tela "Ready to start" do pygbag pela tela inicial
+     da INBEC, que fica em ferramentas/site/tela_inicial.html
 """
 
 import os
@@ -22,11 +24,13 @@ RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "build_web"
 ALTURA_MAX_IMAGEM = 700      # px; suficiente para os cards mesmo em tela cheia Full HD
 TITULO_PAGINA = "Jackpot Faculdade INBEC"
+TELA_INICIAL = RAIZ / "ferramentas" / "site" / "tela_inicial.html"
 
 sys.path.insert(0, str(RAIZ))
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 import pygame  # noqa: E402
 from jackpot.config import LOGO, SIMBOLOS, SONS  # noqa: E402
+from jackpot.recursos import remover_fundo_claro  # noqa: E402
 
 
 def copiar_codigo():
@@ -66,9 +70,22 @@ def converter_sons():
         print(f"  som {nome} -> {destino.name} ({destino.stat().st_size / 1024:.0f} KB)")
 
 
-def criar_favicon():
-    logo = pygame.image.load(RAIZ / "imagens" / LOGO)
-    pygame.image.save(pygame.transform.smoothscale(logo, (64, 64)), DESTINO / "favicon.png")
+def carregar_logo():
+    """Logo sem o fundo claro e recortada, pronta para o favicon e a tela inicial."""
+    logo = remover_fundo_claro(pygame.image.load(RAIZ / "imagens" / LOGO))
+    return logo.subsurface(logo.get_bounding_rect()).copy()
+
+
+def caber_em_quadrado(img, lado):
+    k = lado / max(img.get_size())
+    menor = pygame.transform.smoothscale(img, (round(img.get_width() * k), round(img.get_height() * k)))
+    quadrado = pygame.Surface((lado, lado), pygame.SRCALPHA)
+    quadrado.blit(menor, menor.get_rect(center=(lado // 2, lado // 2)))
+    return quadrado
+
+
+def criar_favicon(logo):
+    pygame.image.save(caber_em_quadrado(logo, 64), DESTINO / "favicon.png")
 
 
 def rodar_pygbag(so_gerar):
@@ -79,11 +96,22 @@ def rodar_pygbag(so_gerar):
     subprocess.run(comando, check=True, cwd=RAIZ)
 
 
-def ajustar_pagina():
-    """Troca o fundo cinza da página do pygbag por branco (combina com o fundo do jogo)."""
-    pagina = DESTINO / "build" / "web" / "index.html"
+def ajustar_pagina(logo):
+    """Personaliza a página gerada pelo pygbag: fundo branco, idioma e a tela inicial da INBEC."""
+    web = DESTINO / "build" / "web"
+
+    # arquivos usados pela tela inicial (ferramentas/site/tela_inicial.html)
+    pygame.image.save(caber_em_quadrado(logo, 240), web / "logo_inicial.png")
+    (web / "fontes").mkdir(exist_ok=True)
+    for peso in (600, 800, 900):
+        shutil.copy2(RAIZ / "fontes" / f"Exo2-{peso}.ttf", web / "fontes")
+
+    pagina = web / "index.html"
     html = pagina.read_text(encoding="utf-8")
     html = html.replace('document.body.style.background = "#7f7f7f"', 'document.body.style.background = "#ffffff"')
+    html = html.replace('<html lang="en-us">', '<html lang="pt-BR">', 1)
+    tela_inicial = TELA_INICIAL.read_text(encoding="utf-8")
+    html = html.replace("</body>", tela_inicial + "\n</body>", 1)
     pagina.write_text(html, encoding="utf-8")
 
 
@@ -99,12 +127,13 @@ def main():
     copiar_imagens()
     print("Convertendo sons...")
     converter_sons()
-    criar_favicon()
+    logo = carregar_logo()
+    criar_favicon(logo)
 
     print("Empacotando com pygbag...")
     rodar_pygbag(so_gerar)
     if so_gerar:
-        ajustar_pagina()
+        ajustar_pagina(logo)
         print(f"\nSite gerado em: {DESTINO / 'build' / 'web'}")
 
 

@@ -1,7 +1,4 @@
-"""Montagem dos cards dos cursos (e da logo) que aparecem nas roletas."""
-
 import pygame
-
 from .config import CHAVE_LOGO, SIMBOLOS, Cor
 from .efeitos import brilho_radial, desfoque_vertical, gradiente_vertical, misturar
 from .recursos import ajustar, fonte
@@ -10,7 +7,6 @@ BORRAO = 6   # intensidade do borrão de movimento
 
 
 def criar_cards(imagens, tamanho):
-    """Retorna dois dicionários chave -> card: o normal e o borrado (para o giro rápido)."""
     normais = {chave: criar_card(s, imagens.simbolos[chave], imagens.logo, tamanho)
                for chave, s in SIMBOLOS.items()}
     borrados = {chave: desfoque_vertical(card, BORRAO) for chave, card in normais.items()}
@@ -24,7 +20,6 @@ def criar_card(simbolo, imagem, logo, tamanho):
 
 
 def _card_curso(simbolo, imagem, logo, tamanho):
-    """Card de curso: boneco sobre fundo claro e etiqueta com o nome."""
     l, a = tamanho
     cor = simbolo.cor
     etiqueta_a = int(a * 0.17)
@@ -53,7 +48,6 @@ def _card_curso(simbolo, imagem, logo, tamanho):
 
 
 def _card_logo(imagem, tamanho):
-    """Card especial: só a logo INBEC, grande, sobre branco e cinza claro."""
     l, a = tamanho
     centro = (l // 2, a // 2)
     card = gradiente_vertical(tamanho, Cor.BRANCO, Cor.CINZA_CARD).convert_alpha()
@@ -66,7 +60,6 @@ def _card_logo(imagem, tamanho):
 
 
 def _decorar_fundo(card, centro, cores):
-    """Listras diagonais sutis, halo de luz e anéis finos atrás da imagem."""
     l, a = card.get_size()
     principal = cores[0]
     camada = pygame.Surface((l, a), pygame.SRCALPHA)
@@ -112,7 +105,6 @@ def _desenhar_etiqueta(card, texto, cor, rect):
 
 
 def _finalizar(card, cor_borda):
-    """Recorta os cantos arredondados e desenha as bordas."""
     l, a = card.get_size()
     raio = max(4, int(l * 0.08))
     mascara = pygame.Surface((l, a), pygame.SRCALPHA)
