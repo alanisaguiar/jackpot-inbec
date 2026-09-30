@@ -1,0 +1,125 @@
+<!-- Botão "OU JOGAR OFFLINE" da tela inicial: instala o jogo como app no aparelho.
+     - Chrome/Edge (Android e computador): abre a janela de instalação do próprio navegador.
+     - iPhone/iPad e navegadores sem essa janela: mostra o passo a passo para instalar.
+     O script ferramentas/gerar_site.py insere este trecho no fim do index.html gerado. -->
+<style>
+    #instalar-fundo {
+        position: fixed; inset: 0; z-index: 2147483500;
+        display: flex; align-items: center; justify-content: center; padding: 16px;
+        background: rgba(5, 9, 22, .6);
+        font-family: "Exo 2", "Segoe UI", Arial, sans-serif;
+    }
+    #instalar-fundo[hidden] { display: none; }
+    .inst-caixa {
+        width: min(440px, 100%); box-sizing: border-box; padding: 26px 26px 22px;
+        background: #fff; border-radius: 22px; border: 4px solid #c4ccda;
+        box-shadow: 0 24px 60px rgba(5, 9, 22, .45); color: #1b2a5a;
+    }
+    .inst-titulo { font-weight: 900; font-size: 22px; margin: 0 0 4px; }
+    .inst-sub { margin: 0 0 18px; color: #5a6a8f; font-size: 14px; font-weight: 600; }
+    .inst-passos { list-style: none; margin: 0; padding: 0; counter-reset: passo; }
+    .inst-passos li {
+        counter-increment: passo; position: relative;
+        padding: 0 0 14px 44px; font-size: 15px; font-weight: 600; line-height: 1.4;
+    }
+    .inst-passos li::before {
+        content: counter(passo); position: absolute; left: 0; top: -2px;
+        width: 30px; height: 30px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: #1b2a5a; color: #fff; font-weight: 800;
+    }
+    .inst-passos b { color: #c81e30; }
+    .inst-icone {
+        display: inline-flex; vertical-align: -5px; width: 22px; height: 22px; margin: 0 2px;
+        align-items: center; justify-content: center;
+        border: 1.5px solid #1b2a5a; border-radius: 5px; font-weight: 900; font-size: 15px; line-height: 1;
+    }
+    .inst-icone svg { width: 15px; height: 15px; }
+    .inst-ok {
+        display: block; width: 100%; margin-top: 8px; padding: 12px; cursor: pointer;
+        font: 800 16px "Exo 2", "Segoe UI", Arial, sans-serif; letter-spacing: 1px;
+        color: #fff; border: none; border-radius: 999px;
+        background: linear-gradient(#2c4284, #1b2a5a);
+    }
+</style>
+
+<div id="instalar-fundo" hidden>
+    <div class="inst-caixa" role="dialog" aria-modal="true" aria-labelledby="inst-titulo">
+        <p class="inst-titulo" id="inst-titulo">Jogar offline</p>
+        <p class="inst-sub" id="inst-sub">Instale o Jackpot INBEC como app no seu aparelho:</p>
+        <ol class="inst-passos" id="inst-passos"></ol>
+        <button class="inst-ok" id="inst-ok" type="button">ENTENDI</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    const COMPARTILHAR = '<span class="inst-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 12v8h14v-8"/></svg></span>';
+    const MENU = '<span class="inst-icone">⋮</span>';
+    const PASSO_FINAL = 'Abra o jogo pelo <b>ícone do app</b>, ainda com internet, e espere o aviso verde <b>"Pronto para jogar sem internet"</b>. Depois disso ele funciona offline.';
+
+    const PASSOS = {
+        ios: [
+            'Abra esta página no <b>Safari</b>.',
+            'Toque em <b>Compartilhar</b> ' + COMPARTILHAR + ' (embaixo no iPhone, em cima no iPad).',
+            'Role a lista e toque em <b>"Adicionar à Tela de Início"</b> e depois em <b>Adicionar</b>.',
+            PASSO_FINAL,
+        ],
+        android: [
+            'Toque no menu ' + MENU + ' do Chrome, no canto de cima.',
+            'Toque em <b>"Instalar app"</b> ou <b>"Adicionar à tela inicial"</b>.',
+            PASSO_FINAL,
+        ],
+        computador: [
+            'Clique no ícone de <b>instalar</b> na barra de endereço, ou no menu ' + MENU + ' do navegador.',
+            'Escolha <b>"Instalar Jackpot INBEC"</b> (ou "Instalar app").',
+            PASSO_FINAL,
+        ],
+    };
+
+    const jaInstalado = matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches
+                        || navigator.standalone === true;
+    const ehIOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
+                  || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);   // iPad novo se apresenta como Mac
+    const ehAndroid = /Android/.test(navigator.userAgent);
+
+    // Chrome/Edge avisam por este evento quando o site pode ser instalado; guardamos para usar no clique
+    let pedidoInstalacao = null;
+    addEventListener("beforeinstallprompt", (evento) => {
+        evento.preventDefault();
+        pedidoInstalacao = evento;
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const botao = document.getElementById("ti-offline");
+        const texto = botao && botao.querySelector("span");
+        const fundo = document.getElementById("instalar-fundo");
+        const lista = document.getElementById("inst-passos");
+        if (!botao || jaInstalado) return;   // aberto como app: já funciona offline
+        botao.hidden = false;
+
+        function mostrarPassos() {
+            const passos = ehIOS ? PASSOS.ios : ehAndroid ? PASSOS.android : PASSOS.computador;
+            lista.innerHTML = passos.map((p) => "<li>" + p + "</li>").join("");
+            fundo.hidden = false;
+        }
+
+        botao.addEventListener("click", async () => {
+            if (!pedidoInstalacao) return mostrarPassos();
+            pedidoInstalacao.prompt();
+            const { outcome } = await pedidoInstalacao.userChoice;
+            pedidoInstalacao = null;
+            if (outcome === "accepted") {
+                texto.textContent = "APP INSTALADO ✓";
+                lista.innerHTML = "<li>" + PASSO_FINAL + "</li>";
+                document.getElementById("inst-titulo").textContent = "App instalado!";
+                document.getElementById("inst-sub").textContent = "Falta só um passo:";
+                fundo.hidden = false;
+            }
+        });
+
+        document.getElementById("inst-ok").addEventListener("click", () => { fundo.hidden = true; });
+        fundo.addEventListener("click", (evento) => { if (evento.target === fundo) fundo.hidden = true; });
+    });
+})();
+</script>

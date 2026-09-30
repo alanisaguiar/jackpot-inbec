@@ -61,6 +61,18 @@
     .ti-botao:active { transform: translateY(4px); box-shadow: 0 2px 0 #6e0a16, 0 0 18px rgba(240, 70, 88, .4); }
     .ti-botao:disabled { animation: none; cursor: default; filter: saturate(.7); }
 
+    .ti-offline {
+        margin-top: 16px; padding: 9px 20px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 8px;
+        font: 700 clamp(13px, 3.4vw, 15px) "Exo 2", "Segoe UI", Arial, sans-serif; letter-spacing: 1px;
+        color: #c4ccda; background: transparent;
+        border: 2px solid rgba(196, 204, 218, .45); border-radius: 999px;
+        transition: color .15s, border-color .15s, background .15s;
+    }
+    .ti-offline:hover { color: #fff; border-color: #00c8f0; background: rgba(0, 200, 240, .1); }
+    .ti-offline svg { width: 18px; height: 18px; flex: none; }
+    .ti-offline[hidden] { display: none; }
+
     .ti-status { margin-top: 20px; min-height: 1.3em; color: #96e1ff; font-weight: 600; font-size: 15px; }
     .ti-barra { width: 220px; height: 4px; margin: 10px auto 0; border-radius: 4px; overflow: hidden; background: #16304f; }
     .ti-barra i { display: block; width: 40%; height: 100%; background: #00c8f0; animation: ti-carregar 1.2s ease-in-out infinite; }
@@ -77,6 +89,13 @@
         <div class="ti-sub">FACULDADE <b>INBEC</b></div>
         <div class="ti-linha"></div>
         <button class="ti-botao" id="ti-botao" type="button">CLIQUE PARA JOGAR</button>
+        <!-- botão "jogar offline": a ação fica em ferramentas/site/instalar_app.html -->
+        <button class="ti-offline" id="ti-offline" type="button" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>
+            </svg>
+            <span>OU JOGAR OFFLINE</span>
+        </button>
         <div class="ti-status" id="ti-status">Carregando o jogo...</div>
         <div class="ti-barra" id="ti-barra"><i></i></div>
     </div>
@@ -90,6 +109,7 @@
     const barra = document.getElementById("ti-barra");
     const caixaPygbag = document.getElementById("infobox");
     let clicou = false;
+    let jogoIniciado = false;
 
     function esconder() {
         tela.classList.add("saindo");
@@ -100,6 +120,7 @@
     botao.addEventListener("click", () => {
         clicou = true;
         try { if (window.MM) window.MM.UME = true; } catch (e) {}
+        if (jogoIniciado) return esconder();
         botao.disabled = true;
         botao.textContent = "PREPARANDO...";
         status.textContent = "Quase lá...";
@@ -107,9 +128,13 @@
     });
 
     // Acompanha a caixa do pygbag: ela avisa quando terminou de baixar e some quando o jogo começa.
+    // Qualquer toque na página (até no "jogar offline") libera o jogo, mas a tela inicial
+    // só sai depois do "CLIQUE PARA JOGAR".
     new MutationObserver(() => {
         if (caixaPygbag.style.display === "none") {
-            esconder();                                  // o jogo começou
+            jogoIniciado = true;                         // o jogo começou
+            if (clicou) esconder();
+            else { status.textContent = "Pronto!"; barra.classList.add("oculta"); }
         } else if (!clicou && /Ready to start/i.test(caixaPygbag.textContent)) {   // textContent: a caixa está invisível
             status.textContent = "Pronto!";
             barra.classList.add("oculta");
