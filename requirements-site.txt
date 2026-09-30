@@ -1,3 +1,3 @@
 -r requirements.txt
-pygbag>=0.9
+pygbag==0.9.3   # fixo: a lista de arquivos offline em ferramentas/pwa.py depende desta versão
 imageio-ffmpeg>=0.5

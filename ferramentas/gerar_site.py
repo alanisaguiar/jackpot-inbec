@@ -12,6 +12,8 @@ O que o script faz, sem mexer nos arquivos originais do projeto:
   5. roda o pygbag, que empacota tudo em uma página web
   6. (só com --build) insere na página os trechos da pasta ferramentas/site:
      a tela inicial da INBEC (no lugar do "Ready to start" do pygbag) e o botão de tela cheia
+  7. (só com --build) transforma o site em app instalável que funciona sem internet
+     (manifest, ícones e service worker; ver ferramentas/pwa.py)
 """
 
 import os
@@ -31,6 +33,7 @@ os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 import pygame  # noqa: E402
 from jackpot.config import LOGO, SIMBOLOS, SONS  # noqa: E402
 from jackpot.recursos import remover_fundo_claro  # noqa: E402
+from pwa import gerar_pwa  # noqa: E402  (ferramentas/pwa.py)
 
 
 def copiar_codigo():
@@ -135,6 +138,8 @@ def main():
     rodar_pygbag(so_gerar)
     if so_gerar:
         ajustar_pagina(logo)
+        print("Preparando o app offline (PWA)...")
+        gerar_pwa(DESTINO / "build" / "web", logo)
         print(f"\nSite gerado em: {DESTINO / 'build' / 'web'}")
 
 

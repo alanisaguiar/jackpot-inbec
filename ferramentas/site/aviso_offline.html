@@ -1,0 +1,28 @@
+<!-- Aviso "Pronto para jogar sem internet": aparece quando o service worker (sw.js, gerado por
+     ferramentas/pwa.py) terminou de guardar todos os arquivos do jogo no aparelho. -->
+<style>
+    #aviso-offline {
+        position: fixed; left: 50%; bottom: 16px; z-index: 2147483600;
+        transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+        display: flex; align-items: center; gap: 8px; padding: 10px 18px;
+        font: 700 14px "Exo 2", "Segoe UI", Arial, sans-serif; color: #fff;
+        background: #1b7a4a; border: 2px solid #9be3bd; border-radius: 999px;
+        box-shadow: 0 8px 22px rgba(10, 17, 40, .3);
+        transition: opacity .4s, transform .4s;
+    }
+    #aviso-offline.visivel { opacity: 1; transform: translate(-50%, 0); }
+</style>
+
+<div id="aviso-offline">✓ Pronto para jogar sem internet</div>
+
+<script>
+(function () {
+    if (!("serviceWorker" in navigator)) return;
+    const aviso = document.getElementById("aviso-offline");
+    // "ready" só termina quando o service worker está ativo, ou seja, depois de guardar todos os arquivos
+    navigator.serviceWorker.ready.then(() => {
+        aviso.classList.add("visivel");
+        setTimeout(() => aviso.classList.remove("visivel"), 5000);
+    });
+})();
+</script>

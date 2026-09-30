@@ -21,6 +21,10 @@
         #botao-tela-cheia { padding: 9px; }
         #botao-tela-cheia span { display: none; }
     }
+    /* aberto como app instalado (PWA) já é tela cheia: o botão não é necessário */
+    @media (display-mode: fullscreen), (display-mode: standalone) {
+        #botao-tela-cheia { display: none !important; }
+    }
 </style>
 
 <button id="botao-tela-cheia" type="button" title="Tela cheia" hidden>
