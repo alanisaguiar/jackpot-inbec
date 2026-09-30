@@ -1,0 +1,46 @@
+<!-- Posição do jogo na tela e aviso para girar o celular.
+     O pygbag calcula tamanho/posição do jogo por JavaScript quando a tela muda, mas no iPhone
+     esse cálculo roda antes de a rotação terminar e o jogo fica deslocado e cortado.
+     Aqui o CSS assume essa tarefa: o navegador recalcula sozinho a cada giro, sempre
+     encaixando o jogo (proporção 16:9, a da tela do jogo) no maior espaço possível, centralizado.
+     O script ferramentas/gerar_site.py insere este trecho no fim do index.html gerado. -->
+<style>
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    canvas#canvas {
+        position: fixed !important;
+        inset: 0 !important;
+        margin: auto !important;
+        width: min(100vw, calc(100vh * 16 / 9)) !important;
+        height: min(100vh, calc(100vw * 9 / 16)) !important;
+    }
+    @supports (height: 100dvh) {   /* dvh: altura real visível no celular (sem as barras do navegador) */
+        canvas#canvas {
+            width: min(100dvw, calc(100dvh * 16 / 9)) !important;
+            height: min(100dvh, calc(100dvw * 9 / 16)) !important;
+        }
+    }
+
+    /* celular em pé com o jogo já aberto: o jogo ficaria minúsculo, então pede para girar */
+    #aviso-girar {
+        display: none; position: fixed; inset: 0; z-index: 2147482500;
+        flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+        padding: 24px; text-align: center;
+        background: linear-gradient(#2c4284, #1b2a5a 45%, #050916); color: #fff;
+        font: 800 22px "Exo 2", "Segoe UI", Arial, sans-serif;
+    }
+    #aviso-girar small { font-weight: 600; font-size: 15px; color: #c4ccda; }
+    #aviso-girar svg { width: 84px; height: 84px; color: #00c8f0; animation: girar-celular 2.2s ease-in-out infinite; }
+    @keyframes girar-celular { 0%, 20% { transform: rotate(0); } 50%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+    @media (orientation: portrait) and (max-width: 600px) {
+        body.jogo-iniciado #aviso-girar { display: flex; }
+    }
+</style>
+
+<div id="aviso-girar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>
+    </svg>
+    Gire o celular para jogar
+    <small>O Jackpot funciona na horizontal</small>
+</div>

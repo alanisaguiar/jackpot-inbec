@@ -17,7 +17,7 @@
     #botao-tela-cheia .icone-sair { display: none; }
     #botao-tela-cheia.ativo .icone-entrar { display: none; }
     #botao-tela-cheia.ativo .icone-sair { display: block; }
-    @media (max-width: 600px) {           /* no celular, só o ícone */
+    @media (max-width: 600px), (max-height: 500px) {   /* no celular (em pé ou deitado), só o ícone */
         #botao-tela-cheia { padding: 9px; }
         #botao-tela-cheia span { display: none; }
     }

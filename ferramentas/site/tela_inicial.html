@@ -112,6 +112,7 @@
     let jogoIniciado = false;
 
     function esconder() {
+        document.body.classList.add("jogo-iniciado");   // usado pelo aviso "Gire o celular" (ajuste_tela.html)
         tela.classList.add("saindo");
         setTimeout(() => tela.remove(), 700);
     }
