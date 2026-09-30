@@ -10,8 +10,8 @@ O que o script faz, sem mexer nos arquivos originais do projeto:
   3. converte os sons de MP3 para OGG (formato que o pygbag toca no navegador)
   4. cria o ícone da aba (favicon) a partir da logo
   5. roda o pygbag, que empacota tudo em uma página web
-  6. (só com --build) troca a tela "Ready to start" do pygbag pela tela inicial
-     da INBEC, que fica em ferramentas/site/tela_inicial.html
+  6. (só com --build) insere na página os trechos da pasta ferramentas/site:
+     a tela inicial da INBEC (no lugar do "Ready to start" do pygbag) e o botão de tela cheia
 """
 
 import os
@@ -24,7 +24,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "build_web"
 ALTURA_MAX_IMAGEM = 700      # px; suficiente para os cards mesmo em tela cheia Full HD
 TITULO_PAGINA = "Jackpot Faculdade INBEC"
-TELA_INICIAL = RAIZ / "ferramentas" / "site" / "tela_inicial.html"
+PASTA_TRECHOS = RAIZ / "ferramentas" / "site"   # trechos de HTML inseridos na página gerada
 
 sys.path.insert(0, str(RAIZ))
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
@@ -110,8 +110,9 @@ def ajustar_pagina(logo):
     html = pagina.read_text(encoding="utf-8")
     html = html.replace('document.body.style.background = "#7f7f7f"', 'document.body.style.background = "#ffffff"')
     html = html.replace('<html lang="en-us">', '<html lang="pt-BR">', 1)
-    tela_inicial = TELA_INICIAL.read_text(encoding="utf-8")
-    html = html.replace("</body>", tela_inicial + "\n</body>", 1)
+    # insere os trechos da pasta ferramentas/site (tela inicial, botão de tela cheia...)
+    trechos = "\n".join(arq.read_text(encoding="utf-8") for arq in sorted(PASTA_TRECHOS.glob("*.html")))
+    html = html.replace("</body>", trechos + "\n</body>", 1)
     pagina.write_text(html, encoding="utf-8")
 
 

@@ -41,8 +41,6 @@ class Jogo:
         self.estado = PARADO
         self.premio = None
         self.tempo = 0.0
-        self.jogadas = 0
-        self.vitorias = 0
         self.inicio_ms = 0   
 
         self.aplicar_layout(self.tela.get_size())
@@ -85,7 +83,6 @@ class Jogo:
         self.premio = None
         self.confetes.limpar()
         self.alavanca.puxar()
-        self.jogadas += 1
         self.sons.parar_todos()   
         self.sons.tocar("girar")
 
@@ -94,7 +91,6 @@ class Jogo:
         self.premio = regras.premio([r.simbolo_central for r in self.roletas])
         self.sons.parar("girar", FADE_ROLETA_MS)
         if self.premio:
-            self.vitorias += 1
             self.confetes.soltar(self.layout.largura, self.layout.altura)
             self.sons.tocar("vitoria")
         else:
@@ -133,7 +129,7 @@ class Jogo:
         maq.desenhar_marcadores(self.tela, self.tempo, vitoria)
         maq.desenhar_leds(self.tela, self.tempo, self.estado == GIRANDO, vitoria)
         linha1, linha2, cor = self.mensagem()
-        maq.desenhar_display(self.tela, linha1, linha2, cor, self.jogadas, self.vitorias)
+        maq.desenhar_display(self.tela, linha1, linha2, cor)
         maq.desenhar_alavanca(self.tela, self.alavanca.posicao)
         if not NA_WEB:   # no site não existe F11/ESC do jogo
             maq.desenhar_dica(self.tela)

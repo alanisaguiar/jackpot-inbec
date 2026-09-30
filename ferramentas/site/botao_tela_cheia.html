@@ -1,0 +1,57 @@
+<!-- Botão "Tela cheia" do site: amplia a página inteira (e o jogo) para ocupar a tela toda.
+     O script ferramentas/gerar_site.py insere este trecho no fim do index.html gerado. -->
+<style>
+    #botao-tela-cheia {
+        position: fixed; top: 14px; right: 14px; z-index: 2147482000;
+        display: flex; align-items: center; gap: 8px;
+        padding: 9px 16px; cursor: pointer;
+        font: 700 14px "Exo 2", "Segoe UI", Arial, sans-serif; letter-spacing: .5px;
+        color: #fff; background: rgba(27, 42, 90, .82);
+        border: 2px solid #c4ccda; border-radius: 999px;
+        box-shadow: 0 6px 18px rgba(10, 17, 40, .25);
+        opacity: .75; transition: opacity .2s, transform .1s;
+    }
+    #botao-tela-cheia:hover { opacity: 1; }
+    #botao-tela-cheia:active { transform: scale(.96); }
+    #botao-tela-cheia svg { width: 18px; height: 18px; flex: none; }
+    #botao-tela-cheia .icone-sair { display: none; }
+    #botao-tela-cheia.ativo .icone-entrar { display: none; }
+    #botao-tela-cheia.ativo .icone-sair { display: block; }
+    @media (max-width: 600px) {           /* no celular, só o ícone */
+        #botao-tela-cheia { padding: 9px; }
+        #botao-tela-cheia span { display: none; }
+    }
+</style>
+
+<button id="botao-tela-cheia" type="button" title="Tela cheia" hidden>
+    <svg class="icone-entrar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+    </svg>
+    <svg class="icone-sair" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>
+    </svg>
+    <span>Tela cheia</span>
+</button>
+
+<script>
+(function () {
+    const botao = document.getElementById("botao-tela-cheia");
+    const texto = botao.querySelector("span");
+    // alguns navegadores (como o Safari do iPhone) não permitem tela cheia em páginas: aí o botão nem aparece
+    if (!document.fullscreenEnabled) return;
+    botao.hidden = false;
+
+    botao.addEventListener("click", () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen().catch(() => {});
+        botao.blur();   // sem foco no botão, o ESPAÇO continua girando a roleta em vez de apertar o botão
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+        const ativo = !!document.fullscreenElement;
+        botao.classList.toggle("ativo", ativo);
+        texto.textContent = ativo ? "Sair da tela cheia" : "Tela cheia";
+        botao.title = texto.textContent;
+    });
+})();
+</script>

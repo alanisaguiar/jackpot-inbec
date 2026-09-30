@@ -21,8 +21,6 @@ class Fontes:
         self.subtitulo = fonte(px(15), 700)
         self.mensagem = fonte(px(26), 800)
         self.mensagem2 = fonte(px(15), 600)
-        self.contador = fonte(px(30), 800)
-        self.rotulo = fonte(max(9, px(11)), 700)
         self.dica = fonte(max(11, px(13)), 600)
 
 

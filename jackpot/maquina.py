@@ -126,7 +126,7 @@ class Maquina:
                              px(1), border_radius=px(11))
 
     def _desenhar_display(self, tela):
-        lay, px, f = self.lay, self.lay.px, self.fontes
+        lay, px = self.lay, self.lay.px
         d = lay.display
         tela.blit(forma_com_gradiente(d.size, Cor.AZUL_NOITE, (8, 14, 34), px(16)), d)
         pygame.draw.rect(tela, Cor.AZUL_CLARO, d, px(2), border_radius=px(16))
@@ -135,14 +135,6 @@ class Maquina:
         for y in range(0, d.height, 3):
             pygame.draw.line(linhas, (0, 0, 0, 40), (0, y), (d.width, y))
         tela.blit(linhas, d)
-
-        self.area_contador = px(150)
-        for x in (d.left + self.area_contador, d.right - self.area_contador):
-            pygame.draw.line(tela, misturar(Cor.CIANO, Cor.AZUL_NOITE, 0.6),
-                             (x, d.top + px(14)), (x, d.bottom - px(14)), px(1))
-        for texto, cx in (("JOGADAS", d.left + self.area_contador // 2), ("PRÊMIOS", d.right - self.area_contador // 2)):
-            s = texto_espacado(f.rotulo, texto, Cor.TEXTO_ROTULO, px(3))
-            tela.blit(s, s.get_rect(center=(cx, d.top + int(d.height * 0.27))))
 
     def _desenhar_base_alavanca(self, tela):
         lay, px = self.lay, self.lay.px
@@ -239,14 +231,10 @@ class Maquina:
                 pygame.draw.rect(tela, Cor.DOURADO, lay.card_central(r).inflate(px(6), px(6)), px(3),
                                  border_radius=px(18))
 
-    def desenhar_display(self, tela, linha1, linha2, cor1, jogadas, premios):
+    def desenhar_display(self, tela, linha1, linha2, cor1):
         lay, px, f = self.lay, self.lay.px, self.fontes
         d = lay.display
-        for valor, cx in ((jogadas, d.left + self.area_contador // 2), (premios, d.right - self.area_contador // 2)):
-            s = f.contador.render(f"{valor:03d}", True, Cor.CIANO)
-            tela.blit(s, s.get_rect(center=(cx, d.top + int(d.height * 0.62))))
-
-        largura_max = d.width - 2 * self.area_contador - px(30)
+        largura_max = d.width - px(60)
         centro_x = d.centerx
         y1 = d.top + int(d.height * (0.38 if linha2 else 0.5))
         self._texto(tela, f.mensagem, linha1, cor1, (centro_x, y1), largura_max)
