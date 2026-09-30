@@ -20,11 +20,11 @@ LOGO = "logo_faculdade_2.png"   # usada no card especial, no letreiro e no canto
 
 CHAVE_LOGO = "logo"
 SIMBOLOS = {s.chave: s for s in [
-    Simbolo("civil",    "ENG. CIVIL",    "engenheiro_civil_boneco.png",    AZUL_INBEC,     "Brinde Engenharia Civil"),
-    Simbolo("software", "ENG. SOFTWARE", "engenheiro_software_boneco.png", VERMELHO_INBEC, "Brinde Engenharia de Software"),
-    Simbolo("ads",      "ADS",           "ads_boneco.png",                 AZUL_INBEC,     "Brinde ADS"),
-    Simbolo("direito",  "DIREITO",       "direito_boneco.png",             VERMELHO_INBEC, "Brinde Direito"),
-    Simbolo("rh",       "RH",            "rh_boneca.png",                  AZUL_INBEC,     "Brinde RH"),
+    Simbolo("civil",    "ENG. CIVIL",    "engenheiro_civil_boneco.png",    AZUL_INBEC,     "Brinde"),
+    Simbolo("software", "ENG. SOFTWARE", "engenheiro_software_boneco.png", VERMELHO_INBEC, "Brinde"),
+    Simbolo("ads",      "ADS",           "ads_boneco.png",                 AZUL_INBEC,     "Brinde"),
+    Simbolo("direito",  "DIREITO",       "direito_boneco.png",             VERMELHO_INBEC, "Brinde"),
+    Simbolo("rh",       "RH",            "rh_boneca.png",                  AZUL_INBEC,     "Brinde"),
     Simbolo(CHAVE_LOGO, "",              LOGO,                             CINZA_CLARO,    "PRÊMIO ESPECIAL!"),
 ]}
 
