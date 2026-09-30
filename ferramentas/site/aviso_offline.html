@@ -19,6 +19,14 @@
 (function () {
     if (!("serviceWorker" in navigator)) return;
     const aviso = document.getElementById("aviso-offline");
+
+    // Versão nova publicada: o service worker novo baixa tudo em segundo plano e assume o controle.
+    // Se a pessoa ainda está na tela inicial, recarrega para já mostrar a versão nova
+    // (no meio de uma jogada não recarrega; a versão nova aparece na próxima abertura).
+    const jaTinhaVersao = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (jaTinhaVersao && document.getElementById("tela-inicial")) location.reload();
+    });
     // "ready" só termina quando o service worker está ativo, ou seja, depois de guardar todos os arquivos
     navigator.serviceWorker.ready.then(() => {
         aviso.classList.add("visivel");
