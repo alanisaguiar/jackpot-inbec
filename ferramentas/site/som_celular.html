@@ -1,0 +1,33 @@
+<!-- Som no celular (principalmente iPhone/iPad).
+     1. No iPhone, o modo silencioso corta o som de páginas web. Marcando a página como
+        "reprodução" (navigator.audioSession, Safari 17+), o som toca como num app de música.
+     2. O iPhone pode deixar o áudio da página suspenso (som criado fora de um toque, troca
+        de app, ligação recebida...). Aqui todo áudio criado pelo jogo é acompanhado e
+        reativado a cada toque na tela e quando a página volta a ficar visível.
+     Precisa rodar antes de o jogo criar o áudio; o gerar_site.py insere este trecho no fim
+     do index.html, que é lido bem antes de o pygbag terminar de carregar o jogo. -->
+<script>
+(function () {
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+
+    const Original = window.AudioContext || window.webkitAudioContext;
+    if (!Original) return;
+    const contextos = [];
+    function AudioContextAcompanhado(...argumentos) {
+        const contexto = new Original(...argumentos);
+        contextos.push(contexto);
+        return contexto;
+    }
+    AudioContextAcompanhado.prototype = Original.prototype;
+    window.AudioContext = AudioContextAcompanhado;
+    if (window.webkitAudioContext) window.webkitAudioContext = AudioContextAcompanhado;
+
+    function reativar() {
+        for (const contexto of contextos) {
+            if (contexto.state !== "running" && contexto.state !== "closed") contexto.resume().catch(() => {});
+        }
+    }
+    for (const evento of ["touchend", "click", "keydown"]) addEventListener(evento, reativar, true);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) reativar(); });
+})();
+</script>
