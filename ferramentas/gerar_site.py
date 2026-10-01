@@ -100,7 +100,7 @@ def rodar_pygbag(so_gerar):
 
 
 def ajustar_pagina(logo):
-    """Personaliza a página gerada pelo pygbag: fundo branco, idioma e a tela inicial da INBEC."""
+    """Personaliza a página gerada pelo pygbag: fundo azul, idioma e os trechos de ferramentas/site."""
     web = DESTINO / "build" / "web"
 
     # arquivos usados pela tela inicial (ferramentas/site/tela_inicial.html)
@@ -111,7 +111,7 @@ def ajustar_pagina(logo):
 
     pagina = web / "index.html"
     html = pagina.read_text(encoding="utf-8")
-    html = html.replace('document.body.style.background = "#7f7f7f"', 'document.body.style.background = "#ffffff"')
+    html = html.replace('document.body.style.background = "#7f7f7f"', 'document.body.style.background = "#050916"')
     html = html.replace('<html lang="en-us">', '<html lang="pt-BR">', 1)
     # insere os trechos da pasta ferramentas/site (tela inicial, botão de tela cheia...)
     trechos = "\n".join(arq.read_text(encoding="utf-8") for arq in sorted(PASTA_TRECHOS.glob("*.html")))

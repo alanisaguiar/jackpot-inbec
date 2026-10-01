@@ -74,20 +74,6 @@ def desfoque_vertical(surf, forca=6):
     return pygame.transform.smoothscale(pequeno, (l, a))
 
 
-def fundo_grade(tamanho, passo):
-    l, a = tamanho
-    surf = pygame.Surface(tamanho)
-    surf.fill(Cor.FUNDO)
-    passo = max(8, passo)
-    for x in range(0, l, passo):
-        pygame.draw.line(surf, Cor.GRADE, (x, 0), (x, a))
-    for y in range(0, a, passo):
-        pygame.draw.line(surf, Cor.GRADE, (0, y), (l, y))
-    for x in range(0, l, passo * 4):
-        for y in range(0, a, passo * 4):
-            pygame.draw.circle(surf, Cor.GRADE_PONTO, (x, y), 2)
-    return surf
-
 
 def sombra_cilindro(tamanho):
     l, a = tamanho

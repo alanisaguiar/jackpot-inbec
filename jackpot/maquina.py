@@ -1,12 +1,25 @@
+"""Aparência da tela do jogo no estilo "cassino moderno".
+
+Barra do topo com a placa JACKPOT, janela dos rolos no centro, colunas tech
+nas laterais e barra de controles embaixo (painel de mensagem + botão GIRAR).
+
+Tudo o que é estático é desenhado uma única vez por tamanho de janela (em
+`Maquina.fundo`); a cada quadro só são desenhadas as partes animadas.
+"""
+
 import math
+import random
+
 import pygame
-from .config import SUBTITULO, TITULO, Cor
-from .efeitos import (brilho_radial, desfocar, forma_com_gradiente, fundo_grade,
-                      gradiente_vertical, misturar, sombra_suave, texto_com_brilho)
+
+from .config import NA_WEB, SUBTITULO, TITULO, Cor
+from .efeitos import (brilho_radial, desfocar, forma_com_gradiente, gradiente_vertical, misturar,
+                      sombra_suave, texto_com_brilho)
 from .recursos import ajustar
 
 
 def texto_espacado(fonte, texto, cor, espaco):
+    """Texto com espaçamento extra entre as letras (visual mais "tech")."""
     letras = [fonte.render(c, True, cor) for c in texto]
     largura = sum(s.get_width() for s in letras) + espaco * (len(letras) - 1)
     surf = pygame.Surface((max(1, largura), fonte.get_height()), pygame.SRCALPHA)
@@ -17,14 +30,16 @@ def texto_espacado(fonte, texto, cor, espaco):
     return surf
 
 
-class Alavanca:
-    DURACAO = 0.5
+class BotaoGirar:
+    """Animação do botão GIRAR: afunda quando a jogada começa e volta."""
+
+    DURACAO = 0.35
 
     def __init__(self):
-        self.posicao = 0.0    # 0 = em cima, 1 = puxada
+        self.afundado = 0.0    # 0 = solto, 1 = totalmente apertado
         self._t = None
 
-    def puxar(self):
+    def apertar(self):
         self._t = 0.0
 
     def atualizar(self, dt):
@@ -32,122 +47,218 @@ class Alavanca:
             return
         self._t += dt
         k = self._t / self.DURACAO
-        self.posicao = math.sin(min(1.0, k) * math.pi)
+        self.afundado = math.sin(min(1.0, k) * math.pi)
         if k >= 1:
             self._t = None
-            self.posicao = 0.0
+            self.afundado = 0.0
 
 
 class Maquina:
     def __init__(self, layout, fontes, imagens):
         self.lay = layout
         self.fontes = fontes
+        self.leds_colunas = []      # retângulos dos LEDs das colunas (preenchido ao desenhar as colunas)
         self.fundo = self._construir_fundo(imagens.logo)
         self.vidro = self._construir_vidro()
         self.brilho_vitoria = self._construir_brilho_vitoria()
         self.setas = self._construir_setas()
-        self.bola = self._construir_bola()
+        self.botoes = self._construir_botoes()
+        self.leds_placa, self.leds_barra = self._posicoes_leds()
 
+    # =====================================================================
     # partes estáticas (desenhadas uma vez)
+    # =====================================================================
 
     def _construir_fundo(self, logo):
-        lay, px = self.lay, self.lay.px
-        tela = fundo_grade((lay.largura, lay.altura), px(32)).convert()
-
-        # sombra do gabinete no chão
-        sombra = sombra_suave(lay.maquina.size, px(34), px(18), 110)
-        tela.blit(sombra, sombra.get_rect(center=(lay.maquina.centerx, lay.maquina.centery + px(14))))
-
-        # gabinete: casca prateada + corpo azul
-        tela.blit(forma_com_gradiente(lay.maquina.size, Cor.PRATA_CLARO, Cor.PRATA_ESCURO, px(34)), lay.maquina)
-        corpo = lay.maquina.inflate(-px(10), -px(10))
-        tela.blit(forma_com_gradiente(corpo.size, Cor.AZUL, Cor.AZUL_ESCURO, px(30)), corpo)
-        for x in (corpo.left + px(20), corpo.right - px(20)):
-            for y in (lay.janela.top + px(8), lay.display.bottom - px(8)):
-                self._parafuso(tela, (x, y), px(5))
-
-        self._desenhar_letreiro(tela, logo)
+        lay = self.lay
+        tela = self._cenario().convert()
+        for coluna in lay.colunas:
+            self._desenhar_coluna(tela, coluna, logo)
         self._desenhar_janela(tela)
-        self._desenhar_display(tela)
-        self._desenhar_base_alavanca(tela)
+        self._desenhar_barra_topo(tela, logo)
+        self._desenhar_barra_base(tela)
         return tela
 
-    @staticmethod
-    def _parafuso(tela, centro, raio):
-        pygame.draw.circle(tela, Cor.PRATA_ESCURO, centro, raio + 1)
-        pygame.draw.circle(tela, Cor.PRATA, centro, raio)
-        pygame.draw.line(tela, Cor.PRATA_ESCURO, (centro[0] - raio + 2, centro[1] + raio - 2),
-                         (centro[0] + raio - 2, centro[1] - raio + 2), 2)
+    def _cenario(self):
+        """Fundo da tela inteira: azul profundo, grade tech sutil e brilho atrás dos rolos."""
+        lay, px = self.lay, self.lay.px
+        tela = gradiente_vertical((lay.largura, lay.altura), (16, 28, 66), Cor.AZUL_NOITE)
 
-    def _desenhar_letreiro(self, tela, logo):
-        lay, px, f = self.lay, self.lay.px, self.fontes
-        r = lay.letreiro
-        tela.blit(forma_com_gradiente(r.size, Cor.AZUL_CLARO, Cor.AZUL_NOITE, px(20)), r)
-        pygame.draw.rect(tela, misturar(Cor.CIANO, Cor.AZUL, 0.3), r, px(2), border_radius=px(20))
-        pygame.draw.line(tela, Cor.VERMELHO, (r.left + px(40), r.bottom - px(3)), (r.right - px(40), r.bottom - px(3)), px(2))
+        grade = pygame.Surface(tela.get_size(), pygame.SRCALPHA)
+        passo = max(12, px(44))
+        for x in range(lay.centro_x % passo, lay.largura, passo):
+            pygame.draw.line(grade, (*Cor.CIANO, 14), (x, 0), (x, lay.altura))
+        for y in range(0, lay.altura, passo):
+            pygame.draw.line(grade, (*Cor.CIANO, 14), (0, y), (lay.largura, y))
+        tela.blit(grade, (0, 0))
 
-        titulo = texto_com_brilho(f.letreiro, TITULO, Cor.BRANCO, Cor.CIANO, px(7))
-        tela.blit(titulo, titulo.get_rect(center=(r.centerx, r.top + int(r.height * 0.40))))
+        brilho = brilho_radial(int(lay.janela.width * 0.75), Cor.CIANO, 55)
+        tela.blit(brilho, brilho.get_rect(center=lay.janela.center))
+        brilho = brilho_radial(int(lay.janela.width * 0.5), Cor.AZUL_CLARO, 120)
+        tela.blit(brilho, brilho.get_rect(center=lay.janela.center))
+        return tela
 
-        antes, _, depois = SUBTITULO.rpartition(" ")
-        esp = px(4)
-        partes = [texto_espacado(f.subtitulo, antes, Cor.PRATA, esp),
-                  texto_espacado(f.subtitulo, depois, Cor.VERMELHO_CLARO, esp)]
-        vao = esp * 4
-        largura = sum(p.get_width() for p in partes) + vao
-        x = r.centerx - largura // 2
-        y = r.top + int(r.height * 0.78)
-        for p in partes:
-            tela.blit(p, p.get_rect(midleft=(x, y)))
-            x += p.get_width() + vao
+    def _desenhar_coluna(self, tela, r, logo):
+        """Coluna futurista: moldura prateada, interior escuro com circuitos, faixas de LED e a logo."""
+        px = self.lay.px
+        sombra = sombra_suave(r.size, px(16), px(14), 120)
+        tela.blit(sombra, sombra.get_rect(center=(r.centerx, r.centery + px(8))))
 
-        # selos com a logo nas duas pontas do letreiro
-        if logo is not None:
-            lado = int(r.height * 0.66)
-            for cx in (r.left + px(30) + lado // 2, r.right - px(30) - lado // 2):
-                selo = pygame.Rect(0, 0, lado, lado)
-                selo.center = (cx, r.centery)
-                brilho = brilho_radial(int(lado * 0.9), Cor.CIANO, 70)
-                tela.blit(brilho, brilho.get_rect(center=selo.center))
-                pygame.draw.rect(tela, Cor.BRANCO, selo, border_radius=px(12))
-                pygame.draw.rect(tela, Cor.CIANO, selo, px(2), border_radius=px(12))
-                img = ajustar(logo, (int(lado * 0.72), int(lado * 0.72)))
-                tela.blit(img, img.get_rect(center=selo.center))
+        tela.blit(forma_com_gradiente(r.size, Cor.PRATA_CLARO, Cor.PRATA_ESCURO, px(16)), r)
+        dentro = r.inflate(-px(8), -px(8))
+        tela.blit(forma_com_gradiente(dentro.size, Cor.AZUL, Cor.AZUL_NOITE, px(12)), dentro)
+
+        # capitéis (topo e base) um pouco mais largos, como colunas de verdade
+        for y in (r.top - px(6), r.bottom - px(18)):
+            capitel = pygame.Rect(0, 0, r.width + px(14), px(24))
+            capitel.midtop = (r.centerx, y)
+            tela.blit(forma_com_gradiente(capitel.size, Cor.PRATA_CLARO, Cor.PRATA_ESCURO, px(8)), capitel)
+            pygame.draw.line(tela, Cor.VERMELHO, (capitel.left + px(8), capitel.centery),
+                             (capitel.right - px(8), capitel.centery), max(1, px(2)))
+
+        # trilhas de circuito (sempre as mesmas: sorteio com semente fixa)
+        circuito = pygame.Surface(dentro.size, pygame.SRCALPHA)
+        sorte = random.Random(7)
+        l, a = dentro.size
+        for _ in range(max(3, l // px(14))):
+            x = sorte.randint(px(14), max(px(15), l - px(14)))
+            y1 = sorte.randint(px(30), a // 2)
+            y2 = sorte.randint(a // 2, a - px(30))
+            pygame.draw.line(circuito, (*Cor.CIANO, 45), (x, y1), (x, y2), max(1, px(2)))
+            for y in (y1, y2):
+                pygame.draw.circle(circuito, (*Cor.CIANO, 90), (x, y), max(2, px(3)))
+        tela.blit(circuito, dentro)
+
+        # faixas de LED nas bordas internas (desenhadas a cada quadro em desenhar_leds)
+        seg_l, seg_a, seg_passo = max(2, px(5)), px(12), px(18)
+        xs = [dentro.left + px(8), dentro.right - px(8) - seg_l] if r.width >= px(70) else [dentro.centerx - seg_l // 2]
+        for x in xs:
+            self.leds_colunas.append([pygame.Rect(x, y, seg_l, seg_a)
+                                      for y in range(dentro.top + px(30), dentro.bottom - px(30) - seg_a, seg_passo)])
+
+        # medalhão com a logo no meio da coluna
+        if logo is not None and r.width >= px(80):
+            lado = int(min(r.width * 0.62, px(84)))
+            selo = pygame.Rect(0, 0, lado, lado)
+            selo.center = dentro.center
+            halo = brilho_radial(int(lado * 0.95), Cor.CIANO, 80)
+            tela.blit(halo, halo.get_rect(center=selo.center))
+            pygame.draw.rect(tela, Cor.BRANCO, selo, border_radius=px(14))
+            pygame.draw.rect(tela, Cor.CIANO, selo, max(1, px(2)), border_radius=px(14))
+            img = ajustar(logo, (int(lado * 0.72), int(lado * 0.72)))
+            tela.blit(img, img.get_rect(center=selo.center))
 
     def _desenhar_janela(self, tela):
         lay, px = self.lay, self.lay.px
         j = lay.janela
-        tela.blit(forma_com_gradiente(j.size, Cor.PRATA_CLARO, Cor.PRATA_ESCURO, px(18)), j)
+        sombra = sombra_suave(j.size, px(22), px(20), 160)
+        tela.blit(sombra, sombra.get_rect(center=(j.centerx, j.centery + px(10))))
+        tela.blit(forma_com_gradiente(j.size, Cor.PRATA_CLARO, Cor.PRATA_ESCURO, px(20)), j)
         interna = j.inflate(-px(8), -px(8))
-        pygame.draw.rect(tela, Cor.AZUL_NOITE, interna, border_radius=px(14))
+        pygame.draw.rect(tela, Cor.AZUL_NOITE, interna, border_radius=px(16))
         for r in lay.roletas:
             tela.blit(forma_com_gradiente(r.size, Cor.AZUL_ESCURO, Cor.AZUL_NOITE, px(10)), r)
             pygame.draw.rect(tela, misturar(Cor.AZUL_CLARO, Cor.AZUL_NOITE, 0.3), r.inflate(px(4), px(4)),
                              px(1), border_radius=px(11))
 
-    def _desenhar_display(self, tela):
+    def _desenhar_barra_topo(self, tela, logo):
+        lay, px, f = self.lay, self.lay.px, self.fontes
+        b = lay.barra_topo
+        tela.blit(gradiente_vertical(b.size, Cor.AZUL_CLARO, Cor.AZUL), b)
+        listras = pygame.Surface(b.size, pygame.SRCALPHA)
+        for x in range(-b.height, b.width, px(26)):
+            pygame.draw.line(listras, (255, 255, 255, 10), (x, b.height), (x + b.height, 0), px(8))
+        tela.blit(listras, b)
+        pygame.draw.rect(tela, Cor.PRATA, (0, b.bottom - px(5), b.width, px(5)))
+        pygame.draw.rect(tela, Cor.VERMELHO, (0, b.bottom, b.width, px(3)))
+
+        # selo com a logo à esquerda
+        if logo is not None:
+            s = lay.selo_logo
+            pygame.draw.rect(tela, Cor.BRANCO, s, border_radius=px(12))
+            pygame.draw.rect(tela, Cor.CIANO, s, max(1, px(2)), border_radius=px(12))
+            img = ajustar(logo, (int(s.width * 0.72), int(s.height * 0.72)))
+            tela.blit(img, img.get_rect(center=s.center))
+
+        # placa JACKPOT no centro, descendo além da barra
+        p = lay.placa
+        sombra = sombra_suave(p.size, px(24), px(14), 150)
+        tela.blit(sombra, sombra.get_rect(center=(p.centerx, p.centery + px(8))))
+        cantos = dict(border_bottom_left_radius=px(28), border_bottom_right_radius=px(28))
+        tela.blit(forma_com_gradiente(p.size, Cor.PRATA_CLARO, Cor.PRATA_ESCURO, 0, **cantos), p)
+        dentro = p.inflate(-px(12), -px(12))
+        dentro.top = p.top
+        dentro.height = p.height - px(6)
+        cantos = dict(border_bottom_left_radius=px(23), border_bottom_right_radius=px(23))
+        tela.blit(forma_com_gradiente(dentro.size, Cor.AZUL_CLARO, Cor.AZUL_NOITE, 0, **cantos), dentro)
+
+        titulo = texto_com_brilho(f.letreiro, TITULO, Cor.BRANCO, Cor.CIANO, px(7))
+        tela.blit(titulo, titulo.get_rect(center=(p.centerx, p.bottom - px(64))))
+        antes, _, depois = SUBTITULO.rpartition(" ")
+        esp = px(4)
+        partes = [texto_espacado(f.subtitulo, antes, Cor.PRATA, esp),
+                  texto_espacado(f.subtitulo, depois, Cor.VERMELHO_CLARO, esp)]
+        vao = esp * 4
+        x = p.centerx - (sum(s.get_width() for s in partes) + vao) // 2
+        for s in partes:
+            tela.blit(s, s.get_rect(midleft=(x, p.bottom - px(28))))
+            x += s.get_width() + vao
+
+    def _desenhar_barra_base(self, tela):
         lay, px = self.lay, self.lay.px
+        b = lay.barra_base
+        tela.blit(gradiente_vertical(b.size, Cor.AZUL, Cor.AZUL_NOITE), b)
+        pygame.draw.rect(tela, Cor.VERMELHO, (0, b.top - px(3), b.width, px(3)))
+        pygame.draw.rect(tela, Cor.PRATA, (0, b.top, b.width, px(5)))
+
+        # painel de mensagem (estilo LCD)
         d = lay.display
         tela.blit(forma_com_gradiente(d.size, Cor.AZUL_NOITE, (8, 14, 34), px(16)), d)
         pygame.draw.rect(tela, Cor.AZUL_CLARO, d, px(2), border_radius=px(16))
-
         linhas = pygame.Surface(d.size, pygame.SRCALPHA)
         for y in range(0, d.height, 3):
             pygame.draw.line(linhas, (0, 0, 0, 40), (0, y), (d.width, y))
         tela.blit(linhas, d)
 
-    def _desenhar_base_alavanca(self, tela):
+        # "berço" onde o botão GIRAR fica encaixado
+        berco = lay.botao.inflate(px(14), px(16))
+        berco.top += px(4)
+        pygame.draw.rect(tela, Cor.AZUL_NOITE, berco, border_radius=berco.height // 2)
+        pygame.draw.rect(tela, Cor.PRATA_ESCURO, berco, max(1, px(2)), border_radius=berco.height // 2)
+
+    def _construir_botoes(self):
+        """Botão GIRAR em dois estados (pronto e girando), com borda 3D embaixo, e o halo pulsante."""
         lay, px = self.lay, self.lay.px
-        b = lay.alavanca_base
-        suporte = pygame.Rect(lay.maquina.right - px(6), b.top + px(20), b.left - lay.maquina.right + px(12), b.height - px(40))
-        tela.blit(gradiente_vertical(suporte.size, Cor.PRATA, Cor.PRATA_ESCURO), suporte)
-        tela.blit(forma_com_gradiente(b.size, Cor.PRATA_CLARO, Cor.PRATA_ESCURO, px(12)), b)
-        fenda = pygame.Rect(0, 0, px(8), b.height - px(26))
-        fenda.center = b.center
-        pygame.draw.rect(tela, Cor.AZUL_NOITE, fenda, border_radius=px(4))
+        l, a = lay.botao.size
+        borda = px(8)
+
+        def botao(topo, base, lateral, texto, cor_texto):
+            surf = pygame.Surface((l, a + borda), pygame.SRCALPHA)
+            pygame.draw.rect(surf, lateral, (0, borda, l, a), border_radius=a // 2)
+            surf.blit(forma_com_gradiente((l, a), topo, base, a // 2), (0, 0))
+            brilho = pygame.Surface((l, a), pygame.SRCALPHA)
+            pygame.draw.ellipse(brilho, (255, 255, 255, 34), (l * 0.12, a * 0.07, l * 0.76, a * 0.34))
+            surf.blit(brilho, (0, 0))
+            fonte = self.fontes.botao
+            s = fonte.render(texto, True, cor_texto)
+            sombra = fonte.render(texto, True, misturar(base, Cor.PRETO, 0.5))
+            if s.get_width() > l * 0.84:
+                s = ajustar(s, (int(l * 0.84), s.get_height()))
+                sombra = ajustar(sombra, (int(l * 0.84), sombra.get_height()))
+            r = s.get_rect(center=(l // 2, a // 2))
+            surf.blit(sombra, r.move(0, px(3)))
+            surf.blit(s, r)
+            return surf
+
+        pronto = botao(Cor.VERMELHO_CLARO, Cor.VERMELHO, Cor.VERMELHO_ESCURO, "GIRAR", Cor.BRANCO)
+        girando = botao(Cor.AZUL_CLARO, Cor.AZUL, Cor.AZUL_NOITE, "GIRANDO...", Cor.TEXTO_LCD)
+        halo_base = pygame.Surface((l + px(10), a + px(10)), pygame.SRCALPHA)
+        pygame.draw.rect(halo_base, (*Cor.VERMELHO_CLARO, 255), halo_base.get_rect(), border_radius=a // 2)
+        halo = desfocar(halo_base, px(14))
+        return {"pronto": pronto, "girando": girando, "halo": halo, "borda": borda}
 
     def _construir_vidro(self):
-        """Reflexo diagonal por cima das roletas, como um vidro."""
+        """Reflexo diagonal por cima dos rolos, como um vidro."""
         j = self.lay.janela.inflate(-self.lay.px(8), -self.lay.px(8))
         vidro = pygame.Surface(j.size, pygame.SRCALPHA)
         l, a = j.size
@@ -172,28 +283,26 @@ class Maquina:
         brilho.blit(seta, seta.get_rect(center=brilho.get_rect().center))
         return brilho, pygame.transform.flip(brilho, True, False)
 
-    def _construir_bola(self):
-        raio = self.lay.px(24)
-        bola = pygame.Surface((raio * 2 + 2, raio * 2 + 2), pygame.SRCALPHA)
-        for i in range(raio, 0, -1):
-            k = i / raio
-            deslocamento = (1 - k) * raio * 0.35
-            pygame.draw.circle(bola, misturar(Cor.VERMELHO_CLARO, Cor.VERMELHO_ESCURO, k ** 1.4),
-                               (raio + 1 - deslocamento, raio + 1 - deslocamento), i)
-        brilho = pygame.Surface(bola.get_size(), pygame.SRCALPHA)
-        pygame.draw.ellipse(brilho, (255, 255, 255, 150),
-                            (raio * 0.45, raio * 0.3, raio * 0.6, raio * 0.4))
-        bola.blit(brilho, (0, 0))
-        return bola
+    def _posicoes_leds(self):
+        """Pontos de LED: contorno de baixo da placa e uma fileira ao longo da barra do topo."""
+        lay, px = self.lay, self.lay.px
+        p = lay.placa.inflate(-px(26), 0)
+        placa = [(x, p.bottom - px(14)) for x in range(p.left + px(20), p.right - px(20), px(20))]
+        placa += [(x, lay.placa.top + px(10)) for x in range(p.left + px(20), p.right - px(20), px(20))]
+        y = lay.barra_topo.bottom - px(14)
+        barra = [(x, y) for x in range(px(110), lay.largura - px(110), px(26))
+                 if not lay.placa.left - px(10) < x < lay.placa.right + px(10)]
+        return placa, barra
 
+    # =====================================================================
     # partes animadas (desenhadas a cada quadro)
+    # =====================================================================
 
     def desenhar_vidro(self, tela):
         tela.blit(self.vidro, self.lay.janela.inflate(-self.lay.px(8), -self.lay.px(8)))
 
     def desenhar_leds(self, tela, tempo, girando, vitoria):
-        """LEDs no contorno do letreiro e faixas de luz nas laterais do gabinete."""
-        lay, px = self.lay, self.lay.px
+        px = self.lay.px
         fase = tempo * (22 if girando or vitoria else 5)
 
         def cor_led(i):
@@ -202,20 +311,14 @@ class Maquina:
             brilho = (math.sin(i * 0.55 - fase) + 1) / 2
             return misturar(Cor.CIANO_APAGADO, Cor.CIANO, brilho ** 3)
 
-        r = lay.letreiro.inflate(-px(14), -px(10))
-        passo = px(22)
-        i = 0
-        for y in (r.top, r.bottom - px(2)):
-            for x in range(r.left + px(30), r.right - px(30), passo):
-                pygame.draw.circle(tela, cor_led(i), (x, y), max(1, px(2)))
-                i += 1
-
-        # faixas laterais segmentadas
-        topo, fundo = lay.janela.top + px(24), lay.display.bottom - px(24)
-        seg_a, seg_passo, seg_l = px(10), px(16), px(4)
-        for x in (lay.maquina.left + px(11), lay.maquina.right - px(11) - seg_l):
-            for n, y in enumerate(range(topo, fundo - seg_a, seg_passo)):
-                pygame.draw.rect(tela, cor_led(n), (x, y, seg_l, seg_a), border_radius=seg_l // 2)
+        raio = max(1, px(2))
+        for i, ponto in enumerate(self.leds_placa):
+            pygame.draw.circle(tela, cor_led(i), ponto, raio)
+        for i, ponto in enumerate(self.leds_barra):
+            pygame.draw.circle(tela, cor_led(i), ponto, raio)
+        for faixa in self.leds_colunas:
+            for n, seg in enumerate(faixa):
+                pygame.draw.rect(tela, cor_led(n), seg, border_radius=seg.width // 2)
 
     def desenhar_marcadores(self, tela, tempo, vitoria):
         lay, px = self.lay, self.lay.px
@@ -234,12 +337,24 @@ class Maquina:
     def desenhar_display(self, tela, linha1, linha2, cor1):
         lay, px, f = self.lay, self.lay.px, self.fontes
         d = lay.display
-        largura_max = d.width - px(60)
-        centro_x = d.centerx
-        y1 = d.top + int(d.height * (0.38 if linha2 else 0.5))
-        self._texto(tela, f.mensagem, linha1, cor1, (centro_x, y1), largura_max)
+        largura_max = d.width - px(40)
+        y1 = d.top + int(d.height * (0.36 if linha2 else 0.5))
+        self._texto(tela, f.mensagem, linha1, cor1, (d.centerx, y1), largura_max)
         if linha2:
-            self._texto(tela, f.mensagem2, linha2, Cor.PRATA, (centro_x, d.top + int(d.height * 0.72)), largura_max)
+            self._texto(tela, f.mensagem2, linha2, Cor.PRATA, (d.centerx, d.top + int(d.height * 0.72)), largura_max)
+
+    def desenhar_botao(self, tela, girando, afundado, tempo):
+        b = self.lay.botao
+        borda = self.botoes["borda"]
+        if not girando:
+            halo = self.botoes["halo"]
+            halo.set_alpha(int(90 + 110 * (math.sin(tempo * 3) + 1) / 2))
+            tela.blit(halo, halo.get_rect(center=b.center))
+        superficie = self.botoes["girando" if girando else "pronto"]
+        descida = int(borda * (1.0 if girando else afundado * 0.9))
+        # ao afundar, a borda 3D de baixo "some" sob a face do botão
+        face = superficie.subsurface((0, 0, b.width, b.height + borda - descida))
+        tela.blit(face, (b.left, b.top + descida))
 
     @staticmethod
     def _texto(tela, fonte, texto, cor, centro, largura_max):
@@ -248,21 +363,8 @@ class Maquina:
             s = ajustar(s, (int(largura_max), s.get_height()))
         tela.blit(s, s.get_rect(center=centro))
 
-    def desenhar_alavanca(self, tela, posicao):
-        lay, px = self.lay, self.lay.px
-        b = lay.alavanca_base
-        piv = (b.centerx, b.centery)
-        y = int(lay.alavanca_topo_y + (lay.alavanca_fundo_y - lay.alavanca_topo_y) * posicao)
-        haste = pygame.Rect(0, 0, px(10), abs(piv[1] - y))
-        haste.midbottom = (piv[0], piv[1]) if y < piv[1] else (piv[0], y)
-        if haste.height:
-            tela.blit(gradiente_vertical(haste.size, Cor.PRATA_CLARO, Cor.PRATA), haste)
-            pygame.draw.line(tela, Cor.BRANCO, (haste.left + px(2), haste.top), (haste.left + px(2), haste.bottom), px(2))
-            pygame.draw.line(tela, Cor.PRATA_ESCURO, (haste.right - 1, haste.top), (haste.right - 1, haste.bottom), px(2))
-        pygame.draw.circle(tela, Cor.PRATA_ESCURO, piv, px(11))
-        pygame.draw.circle(tela, Cor.PRATA_CLARO, piv, px(8))
-        tela.blit(self.bola, self.bola.get_rect(center=(piv[0], y)))
-
     def desenhar_dica(self, tela):
+        if NA_WEB:
+            return   # no site não existe F11/ESC do jogo
         s = self.fontes.dica.render("F11  tela cheia   ·   ESC  sair", True, Cor.TEXTO_DICA)
-        tela.blit(s, s.get_rect(topright=(self.lay.largura - self.lay.margem, self.lay.margem // 2)))
+        tela.blit(s, s.get_rect(midright=(self.lay.largura - self.lay.margem, self.lay.barra_topo.centery)))

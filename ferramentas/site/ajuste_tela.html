@@ -2,22 +2,25 @@
      O pygbag calcula tamanho/posição do jogo por JavaScript quando a tela muda, mas no iPhone
      esse cálculo roda antes de a rotação terminar e o jogo fica deslocado e cortado.
      Aqui o CSS assume essa tarefa: o navegador recalcula sozinho a cada giro, sempre
-     encaixando o jogo (proporção 16:9, a da tela do jogo) no maior espaço possível, centralizado.
+     encaixando o jogo no maior espaço possível, centralizado e sem distorcer.
+     A proporção do jogo (--proporcao) acompanha a tela do aparelho: o próprio jogo
+     muda de tamanho quando o celular gira (jackpot/jogo.py) e o script abaixo atualiza o valor.
      O script ferramentas/gerar_site.py insere este trecho no fim do index.html gerado. -->
 <style>
     html, body { width: 100%; height: 100%; overflow: hidden; }
+    body { background: #050916 !important; }   /* mesma cor do fundo do jogo, caso sobre alguma borda */
 
     canvas#canvas {
         position: fixed !important;
         inset: 0 !important;
         margin: auto !important;
-        width: min(100vw, calc(100vh * 16 / 9)) !important;
-        height: min(100vh, calc(100vw * 9 / 16)) !important;
+        width: min(100vw, calc(100vh * var(--proporcao, 1.7778))) !important;
+        height: min(100vh, calc(100vw / var(--proporcao, 1.7778))) !important;
     }
     @supports (height: 100dvh) {   /* dvh: altura real visível no celular (sem as barras do navegador) */
         canvas#canvas {
-            width: min(100dvw, calc(100dvh * 16 / 9)) !important;
-            height: min(100dvh, calc(100dvw * 9 / 16)) !important;
+            width: min(100dvw, calc(100dvh * var(--proporcao, 1.7778))) !important;
+            height: min(100dvh, calc(100dvw / var(--proporcao, 1.7778))) !important;
         }
     }
 
@@ -44,3 +47,19 @@
     Gire o celular para jogar
     <small>O Jackpot funciona na horizontal</small>
 </div>
+
+<script>
+(function () {
+    // mantém --proporcao igual à proporção real da tela do jogo (que muda quando o celular gira)
+    const canvas = document.getElementById("canvas");
+    let ultima = 0;
+    setInterval(() => {
+        if (!canvas.width || !canvas.height || canvas.width < 10) return;
+        const proporcao = canvas.width / canvas.height;
+        if (Math.abs(proporcao - ultima) > 0.001) {
+            ultima = proporcao;
+            document.documentElement.style.setProperty("--proporcao", proporcao.toFixed(4));
+        }
+    }, 200);
+})();
+</script>

@@ -5,16 +5,29 @@ import time
 import pygame
 from . import regras
 from .cards import criar_cards
-from .config import (DURACOES, FADE_ROLETA_MS, FPS, N_ROLETAS, NA_WEB, SUBTITULO, TAMANHO_INICIAL, TAMANHO_MINIMO,
-                     TAMANHO_WEB, TITULO, VOLTAS_MIN, Cor)
+from .config import (ALTURA_WEB, DURACOES, FADE_ROLETA_MS, FPS, N_ROLETAS, NA_WEB, PROPORCAO_WEB, SUBTITULO,
+                     TAMANHO_INICIAL, TAMANHO_MINIMO, TITULO, VOLTAS_MIN, Cor)
 from .efeitos import Confetes, misturar, sombra_cilindro
 from .layout import Layout
-from .maquina import Alavanca, Maquina
+from .maquina import BotaoGirar, Maquina
 from .recursos import Fontes, Imagens, Sons
 from .roleta import Roleta
 
 PARADO, GIRANDO, RESULTADO = "parado", "girando", "resultado"
-ESPERA_INICIAL_WEB_MS = 1500   
+ESPERA_INICIAL_WEB_MS = 1500
+INTERVALO_TAMANHO_WEB = 0.5    # segundos entre conferências do tamanho da tela no site (ex.: celular girado)
+
+
+def tamanho_web():
+    """No site, a tela do jogo acompanha a proporção da tela do aparelho (sem faixas vazias nas bordas)."""
+    try:
+        import platform as plataforma   # no pygbag, dá acesso à janela do navegador
+        proporcao = plataforma.window.innerWidth / plataforma.window.innerHeight
+    except Exception:
+        proporcao = 16 / 9
+    proporcao = min(PROPORCAO_WEB[1], max(PROPORCAO_WEB[0], proporcao))
+    return (round(ALTURA_WEB * proporcao), ALTURA_WEB)
+
 
 class Jogo:
     def __init__(self):
@@ -24,7 +37,7 @@ class Jogo:
         pygame.init()
         pygame.display.set_caption(f"{TITULO} {SUBTITULO}")
         if NA_WEB:
-            self.tela = pygame.display.set_mode(TAMANHO_WEB)
+            self.tela = pygame.display.set_mode(tamanho_web())
         else:
             self.tela = pygame.display.set_mode(TAMANHO_INICIAL, pygame.RESIZABLE)
             self._definir_tamanho_minimo()
@@ -35,13 +48,14 @@ class Jogo:
         self.imagens = Imagens()
         self.sons = Sons()
         self.roletas = [Roleta() for _ in range(N_ROLETAS)]
-        self.alavanca = Alavanca()
+        self.botao = BotaoGirar()
         self.confetes = Confetes()
 
         self.estado = PARADO
         self.premio = None
         self.tempo = 0.0
-        self.inicio_ms = 0   
+        self.inicio_ms = 0
+        self.conferir_tamanho_em = INTERVALO_TAMANHO_WEB
 
         self.aplicar_layout(self.tela.get_size())
 
@@ -82,7 +96,7 @@ class Jogo:
         self.estado = GIRANDO
         self.premio = None
         self.confetes.limpar()
-        self.alavanca.puxar()
+        self.botao.apertar()
         self.sons.parar_todos()   
         self.sons.tocar("girar")
 
@@ -103,18 +117,31 @@ class Jogo:
             return "VOCÊ GANHOU!", self.premio.premio, Cor.DOURADO
         pisca = misturar(Cor.TEXTO_LCD, Cor.CIANO, (math.sin(self.tempo * 4) + 1) / 2)
         if self.estado == RESULTADO:
-            return "NÃO FOI DESSA VEZ!", "Clique para tentar de novo", Cor.BRANCO
-        return "CLIQUE PARA GIRAR", "ou pressione ESPAÇO", pisca
+            return "NÃO FOI DESSA VEZ!", "Toque em GIRAR para tentar de novo", Cor.BRANCO
+        return "3 IGUAIS GANHAM!", "Toque em GIRAR ou pressione ESPAÇO", pisca
 
     def atualizar(self, dt):
         self.tempo += dt
-        self.alavanca.atualizar(dt)
+        self.botao.atualizar(dt)
+        if NA_WEB:
+            self._acompanhar_tamanho_web(dt)
         self.confetes.atualizar(dt, self.layout.altura)
         if self.estado == GIRANDO:
             for r in self.roletas:
                 r.atualizar(dt)
             if not any(r.girando for r in self.roletas):
                 self.finalizar_giro()
+
+    def _acompanhar_tamanho_web(self, dt):
+        """No site, refaz a tela quando a proporção do aparelho muda (ex.: celular girado)."""
+        self.conferir_tamanho_em -= dt
+        if self.conferir_tamanho_em > 0:
+            return
+        self.conferir_tamanho_em = INTERVALO_TAMANHO_WEB
+        novo = tamanho_web()
+        if novo != self.tela.get_size():
+            self.tela = pygame.display.set_mode(novo)
+            self.aplicar_layout(novo)
 
     # desenho 
 
@@ -130,9 +157,8 @@ class Jogo:
         maq.desenhar_leds(self.tela, self.tempo, self.estado == GIRANDO, vitoria)
         linha1, linha2, cor = self.mensagem()
         maq.desenhar_display(self.tela, linha1, linha2, cor)
-        maq.desenhar_alavanca(self.tela, self.alavanca.posicao)
-        if not NA_WEB:   # no site não existe F11/ESC do jogo
-            maq.desenhar_dica(self.tela)
+        maq.desenhar_botao(self.tela, self.estado == GIRANDO, self.botao.afundado, self.tempo)
+        maq.desenhar_dica(self.tela)
         self.confetes.desenhar(self.tela, lay.escala)
         pygame.display.flip()
 

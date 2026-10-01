@@ -37,7 +37,8 @@ TITULO = "JACKPOT"
 SUBTITULO = "FACULDADE INBEC"
 FPS = 60
 TAMANHO_INICIAL = (1100, 700)
-TAMANHO_WEB = (1280, 720)          # no site, o navegador escala essa tela para caber na página
+ALTURA_WEB = 720                   # no site, a tela do jogo tem essa altura e a largura
+PROPORCAO_WEB = (1.25, 2.4)        # acompanha a proporção da tela do aparelho (limitada a esta faixa)
 TAMANHO_MINIMO = (640, 420)
 
 # Roletas
@@ -83,9 +84,6 @@ class Cor:
     BRANCO = (255, 255, 255)
     PRETO = (0, 0, 0)
     CINZA_CARD = CINZA_CLARO
-    FUNDO = (255, 255, 255)
-    GRADE = (234, 239, 247)
-    GRADE_PONTO = (205, 214, 230)
     TEXTO_LCD = (150, 225, 255)
     TEXTO_DICA = (160, 170, 190)
     CONFETES = [(27, 42, 90), (200, 30, 48), (0, 200, 240), (255, 196, 60), (236, 112, 30)]
